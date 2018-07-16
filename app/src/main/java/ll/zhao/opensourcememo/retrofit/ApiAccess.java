@@ -35,7 +35,7 @@ public class ApiAccess {
             OkHttpClient.Builder builder = new OkHttpClient.Builder();
             builder.addInterceptor(logging).connectTimeout(TIME_OUT, TimeUnit.SECONDS);
             retrofit = new Retrofit.Builder()
-                    .baseUrl("http://172.23.17.155:8080/naigai/")
+                    .baseUrl("https://suggest.taobao.com/")
                     .client(builder.build())
                     .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                     .addConverterFactory(GsonConverterFactory.create())
@@ -58,6 +58,13 @@ public class ApiAccess {
             return null;
         }
     }
+
+    public Observable<Response<TestBean>> searchTest(String content){
+        ApiService apiService = retrofit.create(ApiService.class);
+        Observable<Response<TestBean>> observable = apiService.searchTest(content);
+        return observable;
+    }
+
 
     public Observable<Response<Ap0002>> login(){
         ApiService apiService = retrofit.create(ApiService.class);

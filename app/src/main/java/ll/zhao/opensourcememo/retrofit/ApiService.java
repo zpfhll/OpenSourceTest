@@ -27,6 +27,8 @@ public interface ApiService {
     @HTTP(method = "GET",path = "sug?code=utf-8",hasBody = false)
     Call<ResponseBody> search(@Query("q") String name );
 
+    @HTTP(method = "GET",path = "sug?code=utf-8",hasBody = false)
+    Observable<Response<TestBean>>  searchTest(@Query("q") String name );
 
     @POST(POST_PATH)
     @Headers("Content-Type: application/x-www-form-urlencoded;charset=UTF-8")

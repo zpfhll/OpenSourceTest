@@ -107,6 +107,31 @@ public class RxActivity extends Activity {
     }
 
     @SuppressLint("CheckResult")
+    public void searchTest(View view){
+        ApiAccess apiAccess = new ApiAccess();
+        SchedulerProvider schedulerProvider = SchedulerProvider.getInstance();
+        Observable.fromArray("窗帘","袜子","鞋").concatMap(searchKey ->{
+            Observable<Response<TestBean>> observable = apiAccess.searchTest(searchKey);
+            return  observable;
+        }).compose(schedulerProvider.applySchedulers())
+        .compose(ResponseTransformer.handleResult())
+        .subscribe(result -> {
+            Log.e(TAG, "result:" +result.toString());
+            editText.setText(result.toString());
+        },throwable -> {
+            ApiServerError apiServerError = (ApiServerError)throwable;
+                    Log.e(TAG, "throwable:" +apiServerError.getCode());
+                    Log.e(TAG, "throwable:" +apiServerError.getMessage());
+                    ResponseBody errorResponse = apiServerError.getErrorBody();
+                    if(errorResponse != null){
+                        Log.e(TAG, "throwable:" +errorResponse);
+                        editText.setText(errorResponse.string());
+                    }
+        });
+    }
+
+
+    @SuppressLint("CheckResult")
     public void login(View view){
         ApiAccess apiAccess = new ApiAccess();
         SchedulerProvider schedulerProvider = SchedulerProvider.getInstance();
