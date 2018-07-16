@@ -9,16 +9,19 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.alibaba.android.arouter.facade.annotation.Route;
 import com.google.gson.Gson;
 
 import java.io.IOException;
 
+import ll.zhao.opensourcememo.Constrants;
 import ll.zhao.opensourcememo.R;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+@Route(path = Constrants.RETROFIT)
 public class RetrofitActivity extends Activity {
         private TextView content;
         private EditText search;
