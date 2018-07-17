@@ -12,7 +12,6 @@ import com.google.gson.Gson;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import io.reactivex.Observable;
@@ -22,13 +21,12 @@ import io.reactivex.Observer;
 import io.reactivex.disposables.Disposable;
 import ll.zhao.opensourcememo.Constrants;
 import ll.zhao.opensourcememo.R;
+import ll.zhao.opensourcememo.retrofit.SelfObservable;
 import ll.zhao.opensourcememo.retrofit.request.Ap0002Request;
 import ll.zhao.opensourcememo.retrofit.request.Ap0016Request;
 import ll.zhao.opensourcememo.retrofit.response.Ap0002;
 import ll.zhao.opensourcememo.retrofit.ApiAccess;
 import ll.zhao.opensourcememo.retrofit.ApiServerError;
-import ll.zhao.opensourcememo.retrofit.ResponseTransformer;
-import ll.zhao.opensourcememo.retrofit.SchedulerProvider;
 import ll.zhao.opensourcememo.retrofit.TestBean;
 import ll.zhao.opensourcememo.retrofit.response.Ap0016;
 import okhttp3.ResponseBody;
@@ -114,25 +112,79 @@ public class RxActivity extends Activity {
     @SuppressLint("CheckResult")
     public void searchTest(View view){
         ApiAccess apiAccess = new ApiAccess();
-        SchedulerProvider schedulerProvider = SchedulerProvider.getInstance();
-        Observable.fromArray("窗帘","袜子","鞋").concatMap(searchKey ->{
-            Observable<Response<TestBean>> observable = apiAccess.searchTest(searchKey);
-            return  observable;
-        }).compose(schedulerProvider.applySchedulers())
-        .compose(ResponseTransformer.handleResult())
-        .subscribe(result -> {
-            Log.e(TAG, "result:" +result.toString());
-            editText.setText(result.toString());
-        },throwable -> {
-            ApiServerError apiServerError = (ApiServerError)throwable;
-                    Log.e(TAG, "throwable:" +apiServerError.getCode());
-                    Log.e(TAG, "throwable:" +apiServerError.getMessage());
+        SelfObservable selfObservable1 = apiAccess.searchTest("窗帘","ap00001");
+        SelfObservable selfObservable2 = apiAccess.searchTest("袜子","ap00002");
+
+        List<SelfObservable> selfObservables = new ArrayList<>();
+        selfObservables.add(selfObservable1);
+        selfObservables.add(selfObservable2);
+
+//        apiAccess.sendApiAsynTest(selfObservables,result -> {
+//            Log.e(TAG, "sendApiAsyn callback:");
+//            for (Object object:result){
+//                if (object instanceof Ap0002) {
+//                    Log.e(TAG, "Ap0002 result2:" + result.toString());
+//                } else if (object instanceof Ap0016) {
+//                    Log.e(TAG, "Ap0016 result2:" + result.toString());
+//                }else if(object instanceof ApiServerError){
+//                    ApiServerError apiServerError = (ApiServerError) object;
+//                    Log.e(TAG, "throwable:" + apiServerError.getTag());
+//                    Log.e(TAG, "throwable:" + apiServerError.getCode());
+//                    Log.e(TAG, "throwable:" + apiServerError.getMessage());
+//                    ResponseBody errorResponse = apiServerError.getErrorBody();
+//                    if (errorResponse != null) {
+//                        Log.e(TAG, "throwable:" + errorResponse);
+//                        try {
+//                            editText.setText(errorResponse.string());
+//                        } catch (IOException e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
+//                }
+//            }
+//
+//        });
+
+        apiAccess.sendApiArrayTest(selfObservables,result -> {
+            Log.e(TAG, "sendApiArray callback:");
+            for (Object object:result){
+                if(object instanceof TestBean){
+                    Log.e(TAG, "result2:" + object.toString());
+                }else if(object instanceof ApiServerError){
+                    ApiServerError apiServerError = (ApiServerError) object;
+                    Log.e(TAG, "throwable2:" + apiServerError.getCode());
+                    Log.e(TAG, "throwable2:" + apiServerError.getMessage());
+                    editText.setText(apiServerError.getTag());
                     ResponseBody errorResponse = apiServerError.getErrorBody();
-                    if(errorResponse != null){
-                        Log.e(TAG, "throwable:" +errorResponse);
-                        editText.setText(errorResponse.string());
+                    if (errorResponse != null) {
+                        Log.e(TAG, "throwable2:" + errorResponse);
                     }
+                }
+            }
         });
+
+
+
+
+//        SchedulerProvider schedulerProvider = SchedulerProvider.getInstance();
+//        Observable.fromArray("窗帘","袜子","鞋").concatMap(searchKey ->{
+//            Observable<Response<TestBean>> observable = apiAccess.searchTest(searchKey);
+//            return  observable;
+//        }).compose(schedulerProvider.applySchedulers())
+//        .compose(ResponseTransformer.handleResult())
+//        .subscribe(result -> {
+//            Log.e(TAG, "result:" +result.toString());
+//            editText.setText(result.toString());
+//        },throwable -> {
+//            ApiServerError apiServerError = (ApiServerError)throwable;
+//                    Log.e(TAG, "throwable:" +apiServerError.getCode());
+//                    Log.e(TAG, "throwable:" +apiServerError.getMessage());
+//                    ResponseBody errorResponse = apiServerError.getErrorBody();
+//                    if(errorResponse != null){
+//                        Log.e(TAG, "throwable:" +errorResponse);
+//                        editText.setText(errorResponse.string());
+//                    }
+//        });
     }
 
 

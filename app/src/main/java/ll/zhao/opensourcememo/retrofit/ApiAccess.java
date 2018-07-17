@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.util.Log;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
@@ -44,9 +45,16 @@ public class ApiAccess {
             logging.setLevel(HttpLoggingInterceptor.Level.BASIC);
             OkHttpClient.Builder builder = new OkHttpClient.Builder();
             builder.addInterceptor(logging).connectTimeout(TIME_OUT, TimeUnit.SECONDS);
-            retrofit = new Retrofit.Builder()
+//            retrofit = new Retrofit.Builder()
 //                    .baseUrl("https://suggest.taobao.com/")
-                    .baseUrl("http://172.23.17.155:8080/naigai/")
+//                    .baseUrl("http://172.23.17.155:8080/naigai/")
+//                    .client(builder.build())
+//                    .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
+//                    .addConverterFactory(GsonConverterFactory.create())
+//                    .build();
+
+            retrofit = new Retrofit.Builder()
+                    .baseUrl("https://suggest.taobao.com/")
                     .client(builder.build())
                     .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                     .addConverterFactory(GsonConverterFactory.create())
@@ -70,10 +78,11 @@ public class ApiAccess {
         }
     }
 
-    public Observable<Response<TestBean>> searchTest(String content){
+    @SuppressLint("CheckResult")
+    public SelfObservable searchTest(String content,String tag){
         ApiService apiService = retrofit.create(ApiService.class);
-        Observable<Response<TestBean>> observable = apiService.searchTest(content);
-        return observable;
+        SelfObservable selfObservable = new SelfObservable(tag,apiService.searchTest(content));
+        return selfObservable;
     }
 
 
@@ -89,16 +98,65 @@ public class ApiAccess {
         return observable;
     }
 
+    @SuppressLint("CheckResult")
+    public void sendApiAsynTest(List<SelfObservable> ls,RetrofitCallBack callBack){
+        List<Object> resultList = new ArrayList<>();
+        SchedulerProvider schedulerProvider = SchedulerProvider.getInstance();
+        for (SelfObservable selfObservable:ls){
+            selfObservable.getObservable().compose(schedulerProvider.applySchedulers())
+                    .compose(new ResponseTransformer().handleResult(selfObservable.getTag()))
+                    .subscribe(result -> {
+                        resultList.add(result);
+                        Log.e(TAG, "result:" + result.toString());
+                        if(resultList.size() == ls.size()){
+                            callBack.result(resultList);
+                        }
+                    }, throwable -> {
+                        resultList.add(throwable);
+                        Log.e(TAG, "throwable:" + throwable.toString());
+                        if(resultList.size() == ls.size()){
+                            callBack.result(resultList);
+                        }
+                    });
+        }
+    }
 
+
+    @SuppressLint("CheckResult")
+    public void sendApiArrayTest(List<SelfObservable> ls,RetrofitCallBack callBack){
+        SchedulerProvider schedulerProvider = SchedulerProvider.getInstance();
+        List<Object> resultList = new ArrayList<>();
+        Observable.fromIterable(ls)
+                .concatMap(
+                        request -> {
+                            return request.getObservable()
+                                    .compose(schedulerProvider.applySchedulers())
+                                    .compose(new ResponseTransformer().handleResult(request.getTag()));
+                        }
+                ).subscribe(
+                        result -> {
+                            resultList.add(result);
+                            if(resultList.size() == ls.size()) {
+                                callBack.result(resultList);
+                            }
+                        }, throwable -> {
+                            resultList.add(throwable);
+                            callBack.result(resultList);
+                        }
+                );
+    }
 
 
     @SuppressLint("CheckResult")
     public void sendApiArray(List<Observable> ls,RetrofitCallBack callBack){
         SchedulerProvider schedulerProvider = SchedulerProvider.getInstance();
         List<Object> resultList = new ArrayList<>();
-        Observable.fromIterable(ls).concatMap(request -> request)
+        Observable.fromIterable(ls)
+                .concatMap(
+                        request -> request
+                        )
                 .compose(schedulerProvider.applySchedulers())
-                .compose(ResponseTransformer.handleResult())
+                .compose(new ResponseTransformer().handleResult())
                 .subscribe(
                 result -> {
                     resultList.add(result);
@@ -120,7 +178,7 @@ public class ApiAccess {
         List<Object> resultList = new ArrayList<>();
         Observable observable = Observable.fromIterable(ls).concatMap(request -> request)
                 .compose(schedulerProvider.applySchedulers())
-                .compose(ResponseTransformer.handleResult());
+                .compose(new ResponseTransformer().handleResult());
 
         return observable;
 
@@ -129,7 +187,7 @@ public class ApiAccess {
     public Observable sendSingleApi(Observable api){
         SchedulerProvider schedulerProvider = SchedulerProvider.getInstance();
         return api.compose(schedulerProvider.applySchedulers())
-                .compose(ResponseTransformer.handleResult());
+                .compose(new ResponseTransformer().handleResult());
     }
 
     @SuppressLint("CheckResult")

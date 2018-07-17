@@ -41,7 +41,17 @@ public class ResponseTransformer {
      */
     public static final int HTTP_ERROR = 1003;
 
-    public static <T> ObservableTransformer<? super Response<? extends Serializable>, ? extends Serializable> handleResult() {
+    public  String mTag = "";
+
+    public  <T> ObservableTransformer<? super Response<? extends Serializable>, ? extends Serializable> handleResult(String tag) {
+        mTag = tag;
+        return upstream -> upstream
+                .onErrorResumeNext(new ErrorResumeFunction<T>())
+                .flatMap(new ResponseFunction<T>());
+    }
+
+    public  <T> ObservableTransformer<? super Response<? extends Serializable>, ? extends Serializable> handleResult() {
+
         return upstream -> upstream
                 .onErrorResumeNext(new ErrorResumeFunction<T>())
                 .flatMap(new ResponseFunction<T>());
@@ -53,7 +63,7 @@ public class ResponseTransformer {
      *
      * @param <T>
      */
-    private static class ErrorResumeFunction<T> implements Function<Throwable, ObservableSource<? extends Response<? extends Serializable>>> {
+    private class ErrorResumeFunction<T> implements Function<Throwable, ObservableSource<? extends Response<? extends Serializable>>> {
 
         @Override
         public ObservableSource<? extends Response<? extends Serializable>> apply(Throwable e){
@@ -73,6 +83,7 @@ public class ResponseTransformer {
                 //未知错误
                 ex = new ApiServerError(UNKNOWN, e.getMessage(),null);
             }
+            ex.setTag(mTag);
             return Observable.error(ex);
         }
     }
@@ -83,7 +94,7 @@ public class ResponseTransformer {
      *
      * @param <T>
      */
-    private static class ResponseFunction<T> implements Function<Response<? extends Serializable>, ObservableSource<? extends Serializable>> {
+    private class ResponseFunction<T> implements Function<Response<? extends Serializable>, ObservableSource<? extends Serializable>> {
 
         @Override
         public ObservableSource<? extends Serializable> apply(Response<? extends Serializable> tResponse){
@@ -92,7 +103,7 @@ public class ResponseTransformer {
             if (code == 200) {
                 return Observable.just(tResponse.body());
             } else {
-                return Observable.error(new ApiServerError(code,message,tResponse.errorBody()));
+                return Observable.error(new ApiServerError(mTag,code,message,tResponse.errorBody()));
             }
         }
     }
