@@ -6,6 +6,7 @@ import com.google.gson.JsonParseException;
 
 import org.json.JSONException;
 
+import java.io.Serializable;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
@@ -15,6 +16,7 @@ import io.reactivex.Observable;
 import io.reactivex.ObservableSource;
 import io.reactivex.ObservableTransformer;
 import io.reactivex.functions.Function;
+import ll.zhao.opensourcememo.retrofit.response.BaseResponse;
 import retrofit2.Response;
 
 public class ResponseTransformer {
@@ -39,7 +41,7 @@ public class ResponseTransformer {
      */
     public static final int HTTP_ERROR = 1003;
 
-    public static <T> ObservableTransformer<Response<T>, T> handleResult() {
+    public static <T> ObservableTransformer<? super Response<? extends Serializable>, ? extends Serializable> handleResult() {
         return upstream -> upstream
                 .onErrorResumeNext(new ErrorResumeFunction<T>())
                 .flatMap(new ResponseFunction<T>());
@@ -51,10 +53,10 @@ public class ResponseTransformer {
      *
      * @param <T>
      */
-    private static class ErrorResumeFunction<T> implements Function<Throwable, ObservableSource<? extends Response<T>>> {
+    private static class ErrorResumeFunction<T> implements Function<Throwable, ObservableSource<? extends Response<? extends Serializable>>> {
 
         @Override
-        public ObservableSource<? extends Response<T>> apply(Throwable e) throws Exception {
+        public ObservableSource<? extends Response<? extends Serializable>> apply(Throwable e){
             ApiServerError ex;
             if (e instanceof JsonParseException
                     || e instanceof JSONException
@@ -81,10 +83,10 @@ public class ResponseTransformer {
      *
      * @param <T>
      */
-    private static class ResponseFunction<T> implements Function<Response<T>, ObservableSource<T>> {
+    private static class ResponseFunction<T> implements Function<Response<? extends Serializable>, ObservableSource<? extends Serializable>> {
 
         @Override
-        public ObservableSource<T> apply(Response<T> tResponse) throws Exception {
+        public ObservableSource<? extends Serializable> apply(Response<? extends Serializable> tResponse){
             int code = tResponse.code();
             String message = tResponse.message();
             if (code == 200) {
@@ -94,4 +96,5 @@ public class ResponseTransformer {
             }
         }
     }
+
 }

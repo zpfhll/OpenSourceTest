@@ -5,7 +5,7 @@ import java.io.Serializable;
 /**
  * 送金アプリログイン
  */
-public class Ap0002 implements Serializable{
+public class Ap0002 extends BaseResponse{
     private String token_type;
     private String access_token;
     private long expires_in;

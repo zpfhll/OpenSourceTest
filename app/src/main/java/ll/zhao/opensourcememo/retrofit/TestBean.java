@@ -2,7 +2,9 @@ package ll.zhao.opensourcememo.retrofit;
 
 import java.util.Map;
 
-public class TestBean {
+import ll.zhao.opensourcememo.retrofit.response.BaseResponse;
+
+public class TestBean extends BaseResponse{
 
     private Map<String,String> result;
     private String tmall;

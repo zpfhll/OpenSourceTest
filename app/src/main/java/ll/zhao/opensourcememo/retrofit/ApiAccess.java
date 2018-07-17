@@ -1,13 +1,23 @@
 package ll.zhao.opensourcememo.retrofit;
 
+import android.annotation.SuppressLint;
 import android.util.Log;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Observable;
+import io.reactivex.ObservableEmitter;
+import io.reactivex.ObservableOnSubscribe;
+import io.reactivex.Scheduler;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function;
+import io.reactivex.schedulers.Schedulers;
 import ll.zhao.opensourcememo.retrofit.response.Ap0002;
 import ll.zhao.opensourcememo.retrofit.response.Ap0016;
 import okhttp3.OkHttpClient;
@@ -24,7 +34,7 @@ public class ApiAccess {
 
     public static Retrofit retrofit;
     public static final int TIME_OUT = 5;
-
+    public static final String TAG = "------>";
     public ApiAccess(){
         if(null == retrofit){
 
@@ -35,7 +45,8 @@ public class ApiAccess {
             OkHttpClient.Builder builder = new OkHttpClient.Builder();
             builder.addInterceptor(logging).connectTimeout(TIME_OUT, TimeUnit.SECONDS);
             retrofit = new Retrofit.Builder()
-                    .baseUrl("https://suggest.taobao.com/")
+//                    .baseUrl("https://suggest.taobao.com/")
+                    .baseUrl("http://172.23.17.155:8080/naigai/")
                     .client(builder.build())
                     .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                     .addConverterFactory(GsonConverterFactory.create())
@@ -66,16 +77,80 @@ public class ApiAccess {
     }
 
 
-    public Observable<Response<Ap0002>> login(){
+    public Observable<Response<Ap0002>> login(String deviceID){
         ApiService apiService = retrofit.create(ApiService.class);
-        Observable<Response<Ap0002>> observable = apiService.login("testd");
+        Observable<Response<Ap0002>> observable = apiService.login(deviceID);
         return observable;
     }
 
-    public Observable<Response<Ap0016>> setRegistion(){
+    public Observable<Response<Ap0016>> setRegistion(String baankCode){
         ApiService apiService = retrofit.create(ApiService.class);
-        Observable<Response<Ap0016>> observable = apiService.accountRefresh("005","1");
+        Observable<Response<Ap0016>> observable = apiService.accountRefresh(baankCode,"1");
         return observable;
+    }
+
+
+
+
+    @SuppressLint("CheckResult")
+    public void sendApiArray(List<Observable> ls,RetrofitCallBack callBack){
+        SchedulerProvider schedulerProvider = SchedulerProvider.getInstance();
+        List<Object> resultList = new ArrayList<>();
+        Observable.fromIterable(ls).concatMap(request -> request)
+                .compose(schedulerProvider.applySchedulers())
+                .compose(ResponseTransformer.handleResult())
+                .subscribe(
+                result -> {
+                    resultList.add(result);
+                    if(resultList.size() == ls.size()) {
+                        callBack.result(resultList);
+                    }
+                }, throwable -> {
+                    resultList.add(throwable);
+                    if(resultList.size() == ls.size()){
+                        callBack.result(resultList);
+                    }
+                }
+        );
+    }
+
+    @SuppressLint("CheckResult")
+    public Observable sendApiArray(List<Observable> ls){
+        SchedulerProvider schedulerProvider = SchedulerProvider.getInstance();
+        List<Object> resultList = new ArrayList<>();
+        Observable observable = Observable.fromIterable(ls).concatMap(request -> request)
+                .compose(schedulerProvider.applySchedulers())
+                .compose(ResponseTransformer.handleResult());
+
+        return observable;
+
+    }
+
+    public Observable sendSingleApi(Observable api){
+        SchedulerProvider schedulerProvider = SchedulerProvider.getInstance();
+        return api.compose(schedulerProvider.applySchedulers())
+                .compose(ResponseTransformer.handleResult());
+    }
+
+    @SuppressLint("CheckResult")
+    public void sendApiAsyn(List<Observable> ls,RetrofitCallBack callBack){
+        List<Object> resultList = new ArrayList<>();
+        for (Observable observable:ls){
+            sendSingleApi(observable)
+                    .subscribe(result -> {
+                resultList.add(result);
+                Log.e(TAG, "result:" + result.toString());
+                if(resultList.size() == ls.size()){
+                    callBack.result(resultList);
+                }
+            }, throwable -> {
+                resultList.add(throwable);
+                Log.e(TAG, "throwable:" + throwable.toString());
+                if(resultList.size() == ls.size()){
+                    callBack.result(resultList);
+                }
+            });
+        }
     }
 
 }

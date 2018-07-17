@@ -11,6 +11,9 @@ import com.alibaba.android.arouter.facade.annotation.Route;
 import com.google.gson.Gson;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
@@ -19,6 +22,8 @@ import io.reactivex.Observer;
 import io.reactivex.disposables.Disposable;
 import ll.zhao.opensourcememo.Constrants;
 import ll.zhao.opensourcememo.R;
+import ll.zhao.opensourcememo.retrofit.request.Ap0002Request;
+import ll.zhao.opensourcememo.retrofit.request.Ap0016Request;
 import ll.zhao.opensourcememo.retrofit.response.Ap0002;
 import ll.zhao.opensourcememo.retrofit.ApiAccess;
 import ll.zhao.opensourcememo.retrofit.ApiServerError;
@@ -32,7 +37,7 @@ import retrofit2.Response;
 @Route(path = Constrants.RXJAVA)
 public class RxActivity extends Activity {
     public static final String TAG = "------>";
-    private Observable observable;
+    private Observable<Response<ResponseBody>> observable;
     private EditText editText;
 
 
@@ -131,41 +136,110 @@ public class RxActivity extends Activity {
     }
 
 
+
     @SuppressLint("CheckResult")
     public void login(View view){
         ApiAccess apiAccess = new ApiAccess();
-        SchedulerProvider schedulerProvider = SchedulerProvider.getInstance();
-        Observable<Response<Ap0002>> observable = apiAccess.login();
-        observable.compose(ResponseTransformer.handleResult())
-                .compose(schedulerProvider.applySchedulers())
-                .subscribe(result -> {
-                    Log.e(TAG, "result:" +result.toString());
-                    editText.setText(result.toString());
-                },throwable -> {
-                    ApiServerError apiServerError = (ApiServerError)throwable;
-                    Log.e(TAG, "throwable:" +apiServerError.getCode());
-                    Log.e(TAG, "throwable:" +apiServerError.getMessage());
+        Ap0002Request ap0002Request = new Ap0002Request("testD");
+        Observable<Response<Ap0002>> ap0002 = apiAccess.login(ap0002Request.getDeviceID());
+        Ap0016Request ap0016Request = new Ap0016Request("0005");
+        Observable<Response<Ap0016>> ap0016 = apiAccess.setRegistion(ap0016Request.getBankCode());
+        List<Observable> ls = new ArrayList<>();
+        ls.add(ap0002);
+        ls.add(ap0016);
+
+//        apiAccess.sendSingleApi(ap0002).subscribe(result -> {
+//            if (result instanceof Ap0002) {
+//                Log.e(TAG, "Ap0002 result:" + result.toString());
+//            } else if (result instanceof Ap0016) {
+//                Log.e(TAG, "Ap0016 result:" + result.toString());
+//            }
+//            editText.setText(result.toString());
+//        }, throwable -> {
+//            ApiServerError apiServerError = (ApiServerError) throwable;
+//            Log.e(TAG, "throwable:" + apiServerError.getCode());
+//            Log.e(TAG, "throwable:" + apiServerError.getMessage());
+//            ResponseBody errorResponse = apiServerError.getErrorBody();
+//            if (errorResponse != null) {
+//                Log.e(TAG, "throwable:" + errorResponse);
+//                editText.setText(errorResponse.string());
+//            }
+//        });
+
+
+//        apiAccess.sendApiArray(ls,result -> {
+//            Log.e(TAG, "sendApiArray callback:");
+//            for (Object object:result){
+//                if (object instanceof Ap0002) {
+//                    Log.e(TAG, "Ap0002 result2:" + result.toString());
+//                } else if (object instanceof Ap0016) {
+//                    Log.e(TAG, "Ap0016 result2:" + result.toString());
+//                }else if(object instanceof ApiServerError){
+//                    ApiServerError apiServerError = (ApiServerError) object;
+//                    Log.e(TAG, "throwable2:" + apiServerError.getCode());
+//                    Log.e(TAG, "throwable2:" + apiServerError.getMessage());
+//                    ResponseBody errorResponse = apiServerError.getErrorBody();
+//                    if (errorResponse != null) {
+//                        Log.e(TAG, "throwable2:" + errorResponse);
+//                        try {
+//                            editText.setText(errorResponse.string());
+//                        } catch (IOException e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
+//                }
+//            }
+//        });
+
+
+//        apiAccess.sendApiArray(ls).subscribe(result -> {
+//            Log.e(TAG, "sendApiArray nocallback:");
+//            if (result instanceof Ap0002) {
+//                Log.e(TAG, "Ap0002 result2:" + result.toString());
+//            } else if (result instanceof Ap0016) {
+//                Log.e(TAG, "Ap0016 result2:" + result.toString());
+//            }
+//        },throwable -> {
+//            ApiServerError apiServerError = (ApiServerError) throwable;
+//            Log.e(TAG, "throwable2:" + apiServerError.getCode());
+//            Log.e(TAG, "throwable2:" + apiServerError.getMessage());
+//            ResponseBody errorResponse = apiServerError.getErrorBody();
+//            if (errorResponse != null) {
+//                Log.e(TAG, "throwable2:" + errorResponse);
+//                try {
+//                    editText.setText(errorResponse.string());
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        });
+
+
+
+        apiAccess.sendApiAsyn(ls,result -> {
+            Log.e(TAG, "sendApiAsyn callback:");
+            for (Object object:result){
+                if (object instanceof Ap0002) {
+                    Log.e(TAG, "Ap0002 result2:" + result.toString());
+                } else if (object instanceof Ap0016) {
+                    Log.e(TAG, "Ap0016 result2:" + result.toString());
+                }else if(object instanceof ApiServerError){
+                    ApiServerError apiServerError = (ApiServerError) object;
+                    Log.e(TAG, "throwable2:" + apiServerError.getCode());
+                    Log.e(TAG, "throwable2:" + apiServerError.getMessage());
                     ResponseBody errorResponse = apiServerError.getErrorBody();
-                    if(errorResponse != null){
-                        Log.e(TAG, "throwable:" +errorResponse);
-                        editText.setText(errorResponse.string());
+                    if (errorResponse != null) {
+                        Log.e(TAG, "throwable2:" + errorResponse);
+                        try {
+                            editText.setText(errorResponse.string());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
-                });
-        Observable<Response<Ap0016>> observable2 = apiAccess.setRegistion();
-        observable2.compose(ResponseTransformer.handleResult())
-                .compose(schedulerProvider.applySchedulers())
-                .subscribe(result -> {
-                    Log.e(TAG, "result2:" +result.toString());
-                    editText.setText(result.toString() + "--->throwable2");
-                },throwable -> {
-                    ApiServerError apiServerError = (ApiServerError)throwable;
-                    Log.e(TAG, "throwable2:" +apiServerError.getCode());
-                    Log.e(TAG, "throwable2:" +apiServerError.getMessage());
-                    ResponseBody errorResponse = apiServerError.getErrorBody();
-                    if(errorResponse != null){
-                        Log.e(TAG, "throwable2:" +errorResponse);
-                        editText.setText(errorResponse.string() + "--->throwable2");
-                    }
-                });
+                }
+            }
+
+        });
+
     }
 }
