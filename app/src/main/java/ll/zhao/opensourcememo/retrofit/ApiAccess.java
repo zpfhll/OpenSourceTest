@@ -34,7 +34,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class ApiAccess {
 
     public static Retrofit retrofit;
-    public static final int TIME_OUT = 5;
+    public static final int TIME_OUT = 15;
     public static final String TAG = "------>";
     public ApiAccess(){
         if(null == retrofit){

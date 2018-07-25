@@ -33,6 +33,9 @@ public class MainActivity extends Activity {
         moveTo(Constrants.RXJAVA,view);
     }
 
+    public void eventBus(View view){
+        moveTo(Constrants.EVENT_BUS,view);
+    }
 
     private void moveTo(String path,View v){
         ActivityOptionsCompat compat = ActivityOptionsCompat.
